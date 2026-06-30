@@ -1,0 +1,11 @@
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Debug\StingyShopper.csproj.AssemblyReference.cache
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Debug\StingyShopper.GeneratedMSBuildEditorConfig.editorconfig
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Debug\StingyShopper.AssemblyInfoInputs.cache
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Debug\StingyShopper.AssemblyInfo.cs
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Debug\StingyShopper.csproj.CoreCompileInputs.cache
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Debug\StingyShopper.sourcelink.json
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\bin\Debug\StingyShopper.deps.json
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\bin\Debug\StingyShopper.dll
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\bin\Debug\Newtonsoft.Json.dll
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Debug\StingySh.4DF0FF02.Up2Date
+c:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Debug\StingyShopper.dll
