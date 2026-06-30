@@ -8,3 +8,4 @@ C:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Release\Sting
 C:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Release\StingyShopper.csproj.CoreCompileInputs.cache
 C:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Release\StingySh.4DF0FF02.Up2Date
 C:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Release\StingyShopper.dll
+C:\Users\Tim\Documents\MyAgent\src\StingyShopper\StingyShopper\obj\Release\StingyShopper.sourcelink.json
