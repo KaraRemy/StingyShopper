@@ -58,11 +58,14 @@ namespace StingyShopper.Services
             this.httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("StingyShopper-DalamudPlugin/1.0");
         }
 
-        public async Task<Dictionary<uint, UniversalisItemData>> FetchMarketDataAsync(string worldOrDC, IEnumerable<uint> itemIds, Action<int, int>? progressCallback = null)
+        public async Task<Dictionary<uint, UniversalisItemData>> FetchMarketDataAsync(string worldOrDC, IEnumerable<uint> itemIds, Action<string>? statusCallback = null)
         {
             var result = new Dictionary<uint, UniversalisItemData>();
             var idList = itemIds.Distinct().ToList();
             if (idList.Count == 0 || string.IsNullOrWhiteSpace(worldOrDC)) return result;
+
+            int failedBatches = 0;
+            int totalItems = idList.Count;
 
             for (int i = 0; i < idList.Count; i += MaxItemsPerRequest)
             {
@@ -70,45 +73,73 @@ namespace StingyShopper.Services
                 string idsParam = string.Join(",", chunk);
                 string url = $"https://universalis.app/api/v2/{Uri.EscapeDataString(worldOrDC)}/{idsParam}?listings=15&entries=0";
 
-                try
-                {
-                    string json = await this.httpClient.GetStringAsync(url);
-                    var jObj = JObject.Parse(json);
+                const int MaxRetries = 3;
 
-                    if (chunk.Count == 1)
+                for (int attempt = 1; attempt <= MaxRetries; attempt++)
+                {
+                    try
                     {
-                        var itemData = jObj.ToObject<UniversalisItemData>();
-                        if (itemData != null)
+                        if (attempt > 1)
                         {
-                            result[itemData.ItemID] = itemData;
+                            statusCallback?.Invoke($"Fetching: {i}/{totalItems} processed. Retrying failed batch (Attempt {attempt}/{MaxRetries})...");
+                            await Task.Delay(2000 * (attempt - 1));
                         }
-                    }
-                    else
-                    {
-                        var itemsToken = jObj["items"];
-                        if (itemsToken != null)
+
+                        string json = await this.httpClient.GetStringAsync(url);
+                        var jObj = JObject.Parse(json);
+
+                        if (chunk.Count == 1)
                         {
-                            foreach (var prop in itemsToken.Children<JProperty>())
+                            var itemData = jObj.ToObject<UniversalisItemData>();
+                            if (itemData != null)
                             {
-                                if (uint.TryParse(prop.Name, out uint itemId))
+                                result[itemData.ItemID] = itemData;
+                            }
+                        }
+                        else
+                        {
+                            var itemsToken = jObj["items"];
+                            if (itemsToken != null)
+                            {
+                                foreach (var prop in itemsToken.Children<JProperty>())
                                 {
-                                    var itemData = prop.Value.ToObject<UniversalisItemData>();
-                                    if (itemData != null)
+                                    if (uint.TryParse(prop.Name, out uint itemId))
                                     {
-                                        result[itemId] = itemData;
+                                        var itemData = prop.Value.ToObject<UniversalisItemData>();
+                                        if (itemData != null)
+                                        {
+                                            result[itemId] = itemData;
+                                        }
                                     }
                                 }
                             }
                         }
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (attempt == MaxRetries)
+                        {
+                            Plugin.PluginLog.Warning(ex, $"[StingyShopper] Universalis API fetch failed for url: {url} after {MaxRetries} attempts.");
+                            failedBatches++;
+                        }
+                        else
+                        {
+                            Plugin.PluginLog.Warning($"[StingyShopper] Universalis API request failed (Attempt {attempt}/{MaxRetries}): {ex.Message}");
+                        }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Plugin.PluginLog.Error(ex, $"[StingyShopper] Universalis API fetch failed for url: {url}");
-                }
 
-                // Invoke progress callback
-                progressCallback?.Invoke(Math.Min(i + chunk.Count, idList.Count), idList.Count);
+                // Invoke progress status callback
+                int currentProcessed = Math.Min(i + chunk.Count, idList.Count);
+                if (failedBatches > 0)
+                {
+                    statusCallback?.Invoke($"Fetching: {currentProcessed}/{totalItems} processed ({failedBatches} batches failed)...");
+                }
+                else
+                {
+                    statusCallback?.Invoke($"Fetching: {currentProcessed}/{totalItems} items processed...");
+                }
 
                 // Add 500ms delay between batches to avoid 504 Gateway Timeouts on Universalis database
                 if (i + MaxItemsPerRequest < idList.Count)

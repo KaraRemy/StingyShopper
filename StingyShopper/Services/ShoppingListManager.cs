@@ -165,9 +165,9 @@ namespace StingyShopper.Services
                 var marketDataMap = await this.universalisClient.FetchMarketDataAsync(
                     searchScope, 
                     itemIds,
-                    (processed, total) =>
+                    (status) =>
                     {
-                        LastFetchStatus = $"Fetching: {processed}/{total} items processed...";
+                        LastFetchStatus = status;
                     });
 
                 OptimizeShoppingPlan(marketDataMap, currentWorld);
@@ -473,7 +473,9 @@ namespace StingyShopper.Services
                 BoughtQuantity = 0,
                 RecommendedWorld = worldName,
                 EstimatedUnitPrice = unitPrice,
-                EstimatedTotalCost = totalCost
+                EstimatedTotalCost = totalCost,
+                IsUntradable = item.IsUntradable,
+                IsUnlisted = item.IsUnlisted
             });
         }
 
@@ -492,31 +494,60 @@ namespace StingyShopper.Services
             if (item != null)
             {
                 item.BoughtQuantity += quantityBought;
-
-                // Deduct from allocations sequentially to keep the plan in sync
-                int toDeduct = quantityBought;
-                for (int i = 0; i < item.Allocations.Count; i++)
+                if (this.configuration.AutoRemovePurchasedItems && item.RemainingQuantity <= 0)
                 {
-                    if (toDeduct <= 0) break;
-                    var alloc = item.Allocations[i];
-                    if (alloc.Quantity <= 0) continue;
-
-                    int deduct = Math.Min(toDeduct, alloc.Quantity);
-                    alloc.Quantity -= deduct;
-                    
-                    if (alloc.Quantity == 0)
-                    {
-                        alloc.TotalCost = 0;
-                    }
-                    else
-                    {
-                        alloc.TotalCost = (uint)Math.Max(0, (long)alloc.TotalCost - (deduct * alloc.UnitPrice));
-                    }
-                    toDeduct -= deduct;
+                    Items.Remove(item);
                 }
+                else
+                {
+                    int toDeduct = quantityBought;
 
-                // Remove empty allocations
-                item.Allocations.RemoveAll(a => a.Quantity <= 0);
+                    // 1. Try to deduct from the current world's allocation first to keep the plan in sync
+                    string currentWorld = StingyShopper.Plugin.ObjectTable.LocalPlayer?.CurrentWorld.Value.Name.ExtractText() ?? string.Empty;
+                    if (!string.IsNullOrEmpty(currentWorld))
+                    {
+                        var currentWorldAlloc = item.Allocations.FirstOrDefault(a => a.WorldName.Equals(currentWorld, StringComparison.OrdinalIgnoreCase));
+                        if (currentWorldAlloc != null && currentWorldAlloc.Quantity > 0)
+                        {
+                            int deduct = Math.Min(toDeduct, currentWorldAlloc.Quantity);
+                            currentWorldAlloc.Quantity -= deduct;
+
+                            if (currentWorldAlloc.Quantity == 0)
+                            {
+                                currentWorldAlloc.TotalCost = 0;
+                            }
+                            else
+                            {
+                                currentWorldAlloc.TotalCost = (uint)Math.Max(0, (long)currentWorldAlloc.TotalCost - (deduct * currentWorldAlloc.UnitPrice));
+                            }
+                            toDeduct -= deduct;
+                        }
+                    }
+
+                    // 2. Deduct remaining quantity sequentially from the rest of the allocations
+                    for (int i = 0; i < item.Allocations.Count; i++)
+                    {
+                        if (toDeduct <= 0) break;
+                        var alloc = item.Allocations[i];
+                        if (alloc.Quantity <= 0) continue;
+
+                        int deduct = Math.Min(toDeduct, alloc.Quantity);
+                        alloc.Quantity -= deduct;
+                        
+                        if (alloc.Quantity == 0)
+                        {
+                            alloc.TotalCost = 0;
+                        }
+                        else
+                        {
+                            alloc.TotalCost = (uint)Math.Max(0, (long)alloc.TotalCost - (deduct * alloc.UnitPrice));
+                        }
+                        toDeduct -= deduct;
+                    }
+
+                    // Remove empty allocations
+                    item.Allocations.RemoveAll(a => a.Quantity <= 0);
+                }
 
                 ReconstructGroupedPlan();
                 SaveToConfig();

@@ -113,6 +113,13 @@ namespace StingyShopper.Windows
                 this.configuration.TrackPurchasesFromChat = trackChat;
                 this.configuration.Save();
             }
+
+            bool autoRemove = this.configuration.AutoRemovePurchasedItems;
+            if (ImGui.Checkbox("Automatically Remove Fully Purchased Items from List", ref autoRemove))
+            {
+                this.configuration.AutoRemovePurchasedItems = autoRemove;
+                this.configuration.Save();
+            }
         }
 
         private static string GetModeDisplayName(StinginessMode mode) => mode switch

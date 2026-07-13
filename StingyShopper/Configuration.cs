@@ -44,6 +44,7 @@ namespace StingyShopper
 
         public bool AutoCopyItemNameToClipboard { get; set; } = true;
         public bool TrackPurchasesFromChat { get; set; } = true;
+        public bool AutoRemovePurchasedItems { get; set; } = false;
 
         public List<SavedShoppingItem> SavedItems { get; set; } = new();
 

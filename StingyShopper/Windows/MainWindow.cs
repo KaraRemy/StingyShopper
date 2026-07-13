@@ -32,6 +32,7 @@ namespace StingyShopper.Windows
         private string importStatusMessage = string.Empty;
         private bool showLifestreamPopup = false;
         private bool showClearAllPopup = false;
+        private int maxGilLimit = 0;
 
         private bool importCrystals = true;
         private bool importTimedNodes = true;
@@ -422,12 +423,22 @@ namespace StingyShopper.Windows
 
             ImGui.Spacing();
 
-            // Calculate Travelled Worlds and Total Cost
-            int travelWorlds = this.listManager.GroupedPlan.Count(g => 
-                !g.WorldName.Equals(currentWorld, StringComparison.OrdinalIgnoreCase) && 
-                !g.WorldName.Equals("Untradable", StringComparison.OrdinalIgnoreCase) && 
-                !g.WorldName.Equals("Not Listed", StringComparison.OrdinalIgnoreCase));
-            uint totalCost = (uint)this.listManager.GroupedPlan.Sum(g => g.TotalCost);
+            var filteredGroups = this.listManager.GroupedPlan.Select(g => new
+            {
+                Group = g,
+                VisibleItems = this.maxGilLimit > 0
+                    ? g.Items.Where(item => item.IsUntradable || item.IsUnlisted || item.EstimatedUnitPrice <= this.maxGilLimit).ToList()
+                    : g.Items
+            }).Where(g => g.VisibleItems.Count > 0)
+              .OrderByDescending(g => g.Group.WorldName.Equals(currentWorld, StringComparison.OrdinalIgnoreCase))
+              .ThenByDescending(g => g.Group.TotalCost)
+              .ToList();
+
+            int travelWorlds = filteredGroups.Count(g => 
+                !g.Group.WorldName.Equals(currentWorld, StringComparison.OrdinalIgnoreCase) && 
+                !g.Group.WorldName.Equals("Untradable", StringComparison.OrdinalIgnoreCase) && 
+                !g.Group.WorldName.Equals("Not Listed", StringComparison.OrdinalIgnoreCase));
+            uint totalCost = (uint)filteredGroups.Sum(g => g.VisibleItems.Sum(i => i.EstimatedTotalCost));
 
             ImGui.TextUnformatted($"Total Est. Cost: {totalCost:N0} gil | Travelled Servers: {travelWorlds}");
 
@@ -441,25 +452,35 @@ namespace StingyShopper.Windows
             }
 
             ImGui.Spacing();
+            ImGui.SetNextItemWidth(180);
+            ImGui.InputInt("Max Price (Gil) Filter", ref this.maxGilLimit);
+            if (this.maxGilLimit < 0) this.maxGilLimit = 0;
+            ImGui.SameLine();
+            ImGui.TextDisabled("(Set to 0 to show all)");
+
+            ImGui.Spacing();
             ImGui.Separator();
             ImGui.Spacing();
 
-            if (this.listManager.GroupedPlan.Count == 0)
+            if (filteredGroups.Count == 0)
             {
-                ImGui.TextUnformatted("No shopping plan generated yet. Add items and click Refresh Prices.");
+                ImGui.TextUnformatted("No shopping plan matching filter generated yet. Add items and click Refresh Prices.");
                 return;
             }
 
             if (ImGui.BeginChild("##PlanGroupsChild", new Vector2(0, 0), false))
             {
 
-            foreach (var group in this.listManager.GroupedPlan)
+            foreach (var filtered in filteredGroups)
             {
+                var group = filtered.Group;
+                var visibleItems = filtered.VisibleItems;
                 bool isSpecialGroup = group.WorldName.Equals("Untradable", StringComparison.OrdinalIgnoreCase) || 
                                      group.WorldName.Equals("Not Listed", StringComparison.OrdinalIgnoreCase);
                 bool isCurrentWorld = !isSpecialGroup && group.WorldName.Equals(currentWorld, StringComparison.OrdinalIgnoreCase);
                 
-                string headerLabel = $"{group.WorldName} - Total Est. Cost: {group.TotalCost:N0} gil ({group.Items.Count} items)";
+                uint groupTotalCost = (uint)visibleItems.Sum(i => i.EstimatedTotalCost);
+                string headerLabel = $"{group.WorldName} - Total Est. Cost: {groupTotalCost:N0} gil ({visibleItems.Count} items)";
                 if (isCurrentWorld) headerLabel += " [CURRENT WORLD]";
 
                 if (ImGui.CollapsingHeader(headerLabel, ImGuiTreeNodeFlags.DefaultOpen))
@@ -504,7 +525,7 @@ namespace StingyShopper.Windows
                         ImGui.TableSetupColumn("Est. Unit Price");
                         ImGui.TableHeadersRow();
 
-                        foreach (var item in group.Items)
+                        foreach (var item in visibleItems)
                         {
                             ImGui.TableNextRow();
                             ImGui.TableNextColumn();
