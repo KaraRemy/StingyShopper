@@ -119,13 +119,13 @@
     "C:\\Users\\Tim\\.nuget\\packages\\": {}
   },
   "project": {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "restore": {
-      "projectUniqueName": "c:\\Users\\Tim\\Documents\\MyAgent\\src\\StingyShopper\\StingyShopper\\StingyShopper.csproj",
+      "projectUniqueName": "C:\\Users\\Tim\\Documents\\MyAgent\\src\\StingyShopper\\StingyShopper\\StingyShopper.csproj",
       "projectName": "StingyShopper",
-      "projectPath": "c:\\Users\\Tim\\Documents\\MyAgent\\src\\StingyShopper\\StingyShopper\\StingyShopper.csproj",
+      "projectPath": "C:\\Users\\Tim\\Documents\\MyAgent\\src\\StingyShopper\\StingyShopper\\StingyShopper.csproj",
       "packagesPath": "C:\\Users\\Tim\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\Tim\\Documents\\MyAgent\\src\\StingyShopper\\StingyShopper\\obj\\",
+      "outputPath": "C:\\Users\\Tim\\Documents\\MyAgent\\src\\StingyShopper\\StingyShopper\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\Tim\\AppData\\Roaming\\NuGet\\NuGet.Config"
